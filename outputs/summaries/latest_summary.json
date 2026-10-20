@@ -132,8 +132,8 @@
   "spark_benchmarks": {
     "operation": "Full Aggregation Pass",
     "rows_processed": 50000,
-    "execution_time_seconds": 0.021,
-    "throughput_flows_per_sec": 2405459.8,
+    "execution_time_seconds": 0.024,
+    "throughput_flows_per_sec": 2102429.1,
     "partitions_count": 1
   },
   "investigation_sample": [
@@ -938,5 +938,7 @@
       "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
     }
   ],
-  "last_processed_timestamp": "2026-10-20 13:03:29"
+  "last_processed_timestamp": "2026-10-20 13:18:42",
+  "storage_mode": "HDFS",
+  "source_target": "HDFS (1 files in /netscope/input)"
 }

@@ -69,12 +69,23 @@ def load_cached_summaries(prefix: str = "latest") -> Optional[Dict[str, Any]]:
         return None
 
 
-def export_parquet(df: DataFrame, output_subfolder: str = "cleaned_flows") -> str:
+def export_parquet(
+    df: DataFrame,
+    output_location: Optional[str] = None,
+    output_subfolder: str = "cleaned_flows"
+) -> str:
     """
     Write processed Spark DataFrame to columnar Parquet format.
+    Supports local filesystem path or HDFS URI (e.g. hdfs://localhost:9000/netscope/output/cleaned_parquet).
     """
-    target_path = PARQUET_DIR / output_subfolder
-    df.write.mode("overwrite").parquet(str(target_path))
+    if output_location and output_location.startswith("hdfs://"):
+        target_path = output_location
+    elif output_location:
+        target_path = output_location
+    else:
+        target_path = str(PARQUET_DIR / output_subfolder)
+
+    df.write.mode("overwrite").parquet(target_path)
     return str(target_path)
 
 

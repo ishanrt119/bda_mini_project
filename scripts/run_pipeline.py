@@ -3,6 +3,7 @@
 NetScope: Big Data Pipeline Execution CLI
 Runs full ingestion, data cleaning, distributed Spark analytics,
 explainable anomaly detection, and summary export directly from the terminal.
+Supports both Local POSIX Storage and Apache Hadoop HDFS Data Lake.
 """
 
 import sys
@@ -35,17 +36,26 @@ from src.export_utils import (
     export_parquet,
     generate_executive_report,
 )
-from src.hdfs_utils import check_hdfs_availability
+from src.hdfs_utils import (
+    check_hdfs_availability,
+    list_hdfs_files,
+    upload_local_to_hdfs,
+)
+from config import DEFAULT_HDFS_URI
 
 
 def main():
     parser = argparse.ArgumentParser(description="NetScope Big Data Network Analytics Pipeline")
-    parser.add_argument("--data-dir", type=str, default=None, help="Directory containing CSV files")
+    parser.add_argument("--storage-mode", type=str, choices=["local", "hdfs"], default="local", help="Storage filesystem mode (local or hdfs)")
+    parser.add_argument("--hdfs", action="store_true", help="Shorthand to use Hadoop HDFS storage mode")
+    parser.add_argument("--data-dir", type=str, default=None, help="Directory containing CSV files (for local mode)")
     parser.add_argument("--sample-fraction", type=float, default=None, help="Sampling fraction (e.g. 0.1 for 10%)")
     parser.add_argument("--row-limit", type=int, default=None, help="Row limit for quick execution")
     parser.add_argument("--export-parquet", action="store_true", help="Export cleaned dataset to Parquet format")
     parser.add_argument("--file", type=str, default=None, help="Specific CSV filename to process")
     args = parser.parse_args()
+
+    use_hdfs = args.hdfs or (args.storage_mode == "hdfs")
 
     print("==================================================================")
     print("  NetScope: Big Data Network Analytics & Anomaly Detection Pipeline")
@@ -58,25 +68,57 @@ def main():
     print(f"    Mode: {hdfs_info['mode']}")
     print(f"    Status: {hdfs_info['diagnostic_message']}")
 
-    # 2. Data Discovery
-    print("\n[*] Discovering Dataset Files...")
-    discovered = discover_csv_files(args.data_dir)
-    if not discovered:
-        print("[!] Error: No CSV files discovered in workspace.")
-        sys.exit(1)
-
-    print(f"    Discovered {len(discovered)} CSV file(s) ({sum(f['size_mb'] for f in discovered):.2f} MB total):")
-    for f in discovered:
-        print(f"    - {f['filename']} ({f['size_mb']} MB)")
-
-    # Select target files
-    if args.file:
-        selected_paths = [f["path"] for f in discovered if args.file.lower() in f["filename"].lower()]
-        if not selected_paths:
-            print(f"[!] Specified file '{args.file}' not found among discovered files.")
+    if use_hdfs:
+        if not hdfs_info["is_connected"]:
+            print("\n[!] Error: HDFS storage mode requested, but Hadoop HDFS is not reachable.")
+            print("    Please start Hadoop daemons ('start-dfs.sh' or 'hdfs --daemon start namenode')")
+            print("    or run in local mode without --hdfs flag.")
             sys.exit(1)
+        print("    [+] Genuine Hadoop HDFS cluster verified active.")
+
+    # 2. Target Dataset Selection
+    if use_hdfs:
+        print("\n[*] Querying Hadoop HDFS Data Lake (/netscope/input)...")
+        hdfs_files = list_hdfs_files("/netscope/input")
+        if not hdfs_files:
+            print("    [!] /netscope/input is empty on HDFS. Uploading local dataset...")
+            upload_res = upload_local_to_hdfs("MachineLearningCVE", "/netscope/input")
+            if not upload_res["success"]:
+                print(f"    [!] Failed to upload to HDFS: {upload_res['error']}")
+                sys.exit(1)
+            hdfs_files = upload_res["files"]
+
+        print(f"    Found {len(hdfs_files)} file(s) on HDFS ({sum(f['size_mb'] for f in hdfs_files):.2f} MB):")
+        for f in hdfs_files:
+            print(f"    - {f['filename']} ({f['size_mb']} MB)")
+
+        if args.file:
+            selected_paths = [f["hdfs_path"] for f in hdfs_files if args.file.lower() in f["filename"].lower()]
+            if not selected_paths:
+                print(f"[!] Specified file '{args.file}' not found in HDFS /netscope/input.")
+                sys.exit(1)
+        else:
+            selected_paths = [f["hdfs_path"] for f in hdfs_files]
+        input_desc = f"HDFS ({len(selected_paths)} files in /netscope/input)"
     else:
-        selected_paths = [f["path"] for f in discovered]
+        print("\n[*] Discovering Dataset Files on Local Storage...")
+        discovered = discover_csv_files(args.data_dir)
+        if not discovered:
+            print("[!] Error: No CSV files discovered in workspace.")
+            sys.exit(1)
+
+        print(f"    Discovered {len(discovered)} CSV file(s) ({sum(f['size_mb'] for f in discovered):.2f} MB total):")
+        for f in discovered:
+            print(f"    - {f['filename']} ({f['size_mb']} MB)")
+
+        if args.file:
+            selected_paths = [f["path"] for f in discovered if args.file.lower() in f["filename"].lower()]
+            if not selected_paths:
+                print(f"[!] Specified file '{args.file}' not found among discovered files.")
+                sys.exit(1)
+        else:
+            selected_paths = [f["path"] for f in discovered]
+        input_desc = f"Local POSIX ({len(selected_paths)} files in MachineLearningCVE/)"
 
     # 3. Start PySpark Session
     print("\n[*] Initializing Apache Spark Session...")
@@ -89,14 +131,14 @@ def main():
 
     try:
         # 4. Ingest Data
-        print(f"\n[*] Ingesting {len(selected_paths)} file(s) into Spark DataFrame...")
+        print(f"\n[*] Ingesting data from: {selected_paths[0] if len(selected_paths)==1 else selected_paths[0] + ' ...'}...")
         df_raw, load_time = load_network_data(
             spark,
             selected_paths,
             sample_fraction=args.sample_fraction,
             row_limit=args.row_limit,
         )
-        print(f"    Raw Ingestion complete in {load_time:.2f}s. Columns: {len(df_raw.columns)}")
+        print(f"    Ingestion complete in {load_time:.2f}s. Columns: {len(df_raw.columns)}")
 
         # 5. Clean Data & Validate Quality
         print("\n[*] Executing Data Cleaning & Schema Normalization Pipeline...")
@@ -166,24 +208,42 @@ def main():
             "spark_benchmarks": benchmarks,
             "investigation_sample": investigation_df,
             "last_processed_timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "storage_mode": "HDFS" if use_hdfs else "Local",
+            "source_target": input_desc,
         }
         saved = save_aggregate_summaries(summary_payload, prefix="latest")
         for k, p in saved.items():
             print(f"    Saved {k}: {p}")
 
         # Optional Parquet export
-        if args.export_parquet:
-            print("\n[*] Writing Cleaned Dataset to Parquet...")
-            pq_path = export_parquet(df_clean, output_subfolder="cleaned_flows")
+        out_parquet_path = None
+        if args.export_parquet or use_hdfs:
+            if use_hdfs:
+                out_parquet_path = f"{DEFAULT_HDFS_URI}/netscope/output/cleaned_parquet"
+                print(f"\n[*] Writing Cleaned Dataset to HDFS Parquet ({out_parquet_path})...")
+            else:
+                out_parquet_path = str(Path(BASE_DIR) / "outputs" / "parquet" / "cleaned_flows")
+                print(f"\n[*] Writing Cleaned Dataset to Local Parquet ({out_parquet_path})...")
+
+            pq_path = export_parquet(df_clean, output_location=out_parquet_path)
             print(f"    Parquet saved to: {pq_path}")
 
         # Generate Executive Report
         generate_executive_report(summary_payload)
         print("    Executive Markdown report generated in outputs/reports/")
 
+        # Final Verification & Audit Summary Table
         print("\n==================================================================")
-        print("  Pipeline Completed Successfully! Launch dashboard via:")
-        print("  streamlit run app.py")
+        print("  NETSCOPE EXECUTION & BIG DATA AUDIT SUMMARY")
+        print("==================================================================")
+        print(f"  Storage Filesystem:  {'Hadoop HDFS (hdfs://localhost:9000)' if use_hdfs else 'Local POSIX File Lake'}")
+        print(f"  Input Location:      {selected_paths[0] if len(selected_paths)==1 else selected_paths[0] + ' ...'}")
+        print(f"  Output Parquet:      {out_parquet_path if out_parquet_path else 'outputs/summaries/'}")
+        print(f"  Total Valid Flows:   {kpis['total_flows']:,}")
+        print(f"  Malicious Threat:    {kpis['malicious_flows']:,} ({kpis['malicious_percentage']}%)")
+        print(f"  Execution Time:      {benchmarks['execution_time_seconds']}s")
+        print(f"  Throughput:          {benchmarks['throughput_flows_per_sec']:,} flows/sec")
+        print(f"  Execution Status:    SUCCESS (Verified Live)")
         print("==================================================================")
 
     finally:

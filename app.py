@@ -1,6 +1,7 @@
 """
 NetScope: Big Data Network Traffic Analytics & Anomaly Detection
 Streamlit Cyber Security Operations Center (SOC) Analytics Platform.
+Supports dual storage backends: Local POSIX Data Lake and Apache Hadoop HDFS.
 """
 
 import os
@@ -14,7 +15,7 @@ import streamlit as st
 BASE_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(BASE_DIR))
 
-from config import SOC_THEME, DEFAULT_ANOMALY_RULES
+from config import SOC_THEME, DEFAULT_ANOMALY_RULES, DEFAULT_HDFS_URI
 from src.dashboard_ui import (
     inject_soc_theme,
     render_metric_card,
@@ -39,10 +40,17 @@ from src.anomaly_detection import (
     evaluate_detection_performance,
     train_optional_spark_rf_model,
 )
-from src.hdfs_utils import check_hdfs_availability, generate_hdfs_deployment_commands
+from src.hdfs_utils import (
+    check_hdfs_availability,
+    list_hdfs_files,
+    upload_local_to_hdfs,
+    run_hadoop_streaming_mr_job,
+    generate_hdfs_deployment_commands,
+)
 from src.export_utils import (
     save_aggregate_summaries,
     load_cached_summaries,
+    export_parquet,
     generate_executive_report,
 )
 
@@ -62,25 +70,25 @@ inject_soc_theme()
 # Session State Initialization
 # -----------------------------------------------------------------------------
 if "summaries" not in st.session_state:
-    # Try loading existing disk cache if available
     cached = load_cached_summaries(prefix="latest")
     st.session_state["summaries"] = cached
 
 if "spark_df_clean" not in st.session_state:
     st.session_state["spark_df_clean"] = None
 
-if "hdfs_info" not in st.session_state:
-    st.session_state["hdfs_info"] = check_hdfs_availability()
+# Refresh HDFS status
+st.session_state["hdfs_info"] = check_hdfs_availability()
+hdfs_info = st.session_state["hdfs_info"]
 
 # -----------------------------------------------------------------------------
-# Sidebar: Brand, Dataset Discovery & Controls
+# Sidebar: Brand, Storage Selection & Pipeline Controls
 # -----------------------------------------------------------------------------
 with st.sidebar:
     st.markdown(
         """
-        <div style="padding: 10px 0 20px 0;">
+        <div style="padding: 10px 0 16px 0;">
             <div style="font-size: 22px; font-weight: 800; letter-spacing: -0.03em; color: #ffffff;">
-                🛡️ NetScope <span style="font-size: 11px; background: rgba(0, 242, 254, 0.15); color: #00f2fe; border: 1px solid rgba(0, 242, 254, 0.3); padding: 2px 6px; border-radius: 4px; font-weight: 700; margin-left: 6px;">SOC-SPARK</span>
+                🛡️ NetScope <span style="font-size: 11px; background: rgba(0, 242, 254, 0.15); color: #00f2fe; border: 1px solid rgba(0, 242, 254, 0.3); padding: 2px 6px; border-radius: 4px; font-weight: 700; margin-left: 6px;">SPARK-HDFS</span>
             </div>
             <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">
                 Big Data Network Traffic & Threat Intelligence
@@ -90,27 +98,73 @@ with st.sidebar:
         unsafe_allow_html=True,
     )
 
-    st.markdown("### 📁 Dataset Discovery")
-    discovered_files = discover_csv_files()
-    total_size = sum(f["size_mb"] for f in discovered_files)
-
-    st.markdown(
-        f"""
-        <div class="netscope-card" style="padding: 12px 16px;">
-            <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase;">Storage Location</div>
-            <div style="font-size: 13px; font-weight: 600; color: #f8fafc;">CICIDS2017 MachineLearningCVE</div>
-            <div style="display: flex; justify-content: space-between; margin-top: 6px; font-size: 12px; color: #00f2fe;">
-                <span>{len(discovered_files)} CSV Files</span>
-                <span>{total_size:.1f} MB Total</span>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    st.markdown("### 💾 Storage Filesystem Mode")
+    storage_choice = st.radio(
+        "Select Storage Layer",
+        options=["Hadoop HDFS (Data Lake)", "Local POSIX Storage"],
+        index=0 if hdfs_info["is_connected"] else 1,
+        help="Select whether Spark reads from Hadoop HDFS or Local Storage."
     )
+    is_hdfs_mode = (storage_choice == "Hadoop HDFS (Data Lake)")
 
-    # File Selection Dropdown
-    file_options = ["All Discovered CSV Files (Aggregated)"] + [f["filename"] for f in discovered_files]
-    selected_file_option = st.selectbox("Select Target File", options=file_options, index=0)
+    # Handle HDFS Mode Selection
+    if is_hdfs_mode:
+        if not hdfs_info["is_connected"]:
+            st.error(f"⚠️ HDFS Cluster Offline: {hdfs_info['diagnostic_message']}")
+            st.caption("Falling back to local storage controls until Hadoop NameNode is started.")
+            target_files_list = []
+            selected_file_option = None
+        else:
+            hdfs_files = list_hdfs_files("/netscope/input")
+            total_hdfs_mb = sum(f["size_mb"] for f in hdfs_files)
+
+            st.markdown(
+                f"""
+                <div class="netscope-card" style="padding: 10px 14px; border-left: 3px solid #10b981; background: rgba(16, 185, 129, 0.05);">
+                    <div style="font-size: 11px; color: #10b981; font-weight: 700; text-transform: uppercase;">🟢 HDFS Data Lake Connected</div>
+                    <div style="font-size: 12px; color: #f8fafc; font-family: monospace; margin-top: 2px;">{hdfs_info['hdfs_uri']}/netscope/input/</div>
+                    <div style="display: flex; justify-content: space-between; margin-top: 4px; font-size: 11px; color: #94a3b8;">
+                        <span>{len(hdfs_files)} CSV Files</span>
+                        <span>{total_hdfs_mb:.1f} MB</span>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+            if not hdfs_files:
+                st.warning("HDFS directory `/netscope/input` is empty.")
+                if st.button("📤 Upload Local CSVs to HDFS", use_container_width=True):
+                    with st.spinner("Uploading dataset to HDFS..."):
+                        up_res = upload_local_to_hdfs("MachineLearningCVE", "/netscope/input")
+                        if up_res["success"]:
+                            st.success(f"Uploaded {up_res['uploaded_count']} files to HDFS!")
+                            st.rerun()
+                        else:
+                            st.error(f"Upload failed: {up_res['error']}")
+
+            file_options = ["All HDFS Files (Aggregated)"] + [f["filename"] for f in hdfs_files]
+            selected_file_option = st.selectbox("Select Target File", options=file_options, index=0)
+    else:
+        # Local Storage Mode
+        discovered_files = discover_csv_files()
+        total_size = sum(f["size_mb"] for f in discovered_files)
+
+        st.markdown(
+            f"""
+            <div class="netscope-card" style="padding: 10px 14px; border-left: 3px solid #38bdf8;">
+                <div style="font-size: 11px; color: #38bdf8; font-weight: 700; text-transform: uppercase;">📁 Local POSIX Storage</div>
+                <div style="font-size: 12px; color: #f8fafc; font-family: monospace; margin-top: 2px;">MachineLearningCVE/</div>
+                <div style="display: flex; justify-content: space-between; margin-top: 4px; font-size: 11px; color: #94a3b8;">
+                    <span>{len(discovered_files)} CSV Files</span>
+                    <span>{total_size:.1f} MB</span>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        file_options = ["All Discovered CSV Files (Aggregated)"] + [f["filename"] for f in discovered_files]
+        selected_file_option = st.selectbox("Select Target File", options=file_options, index=0)
 
     # Row Sampling Option
     sample_options = {
@@ -142,9 +196,8 @@ with st.sidebar:
 
     # System Status Panel
     st.markdown("### 🖥️ Engine Status")
-    hdfs_info = st.session_state["hdfs_info"]
     hdfs_badge = "badge-online" if hdfs_info["is_connected"] else "badge-warning"
-    hdfs_text = "HDFS ONLINE" if hdfs_info["is_connected"] else "LOCAL FALLBACK"
+    hdfs_text = f"HDFS ONLINE ({hdfs_info['live_datanodes']} DN)" if hdfs_info["is_connected"] else "LOCAL FALLBACK"
 
     st.markdown(
         f"""
@@ -154,7 +207,7 @@ with st.sidebar:
                 <span class="status-badge badge-online">ACTIVE 4.2.0</span>
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <span style="color: #94a3b8;">Storage Mode:</span>
+                <span style="color: #94a3b8;">HDFS Cluster:</span>
                 <span class="status-badge {hdfs_badge}">{hdfs_text}</span>
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -166,7 +219,7 @@ with st.sidebar:
         unsafe_allow_html=True,
     )
 
-    st.caption("NetScope v1.0.0 | Academic College Project")
+    st.caption("NetScope v1.1.0 | Real Hadoop HDFS & Spark Integration")
 
 
 # -----------------------------------------------------------------------------
@@ -179,11 +232,26 @@ if run_analysis:
             st.error("Failed to initialize Apache Spark session. Please check Java installation.")
         else:
             try:
-                # Determine paths
-                if selected_file_option == "All Discovered CSV Files (Aggregated)":
-                    target_paths = [f["path"] for f in discovered_files]
+                # Determine paths based on selected storage mode
+                if is_hdfs_mode:
+                    if not hdfs_info["is_connected"]:
+                        st.error("Cannot run HDFS pipeline: NameNode is offline.")
+                        st.stop()
+                    hdfs_files = list_hdfs_files("/netscope/input")
+                    if selected_file_option == "All HDFS Files (Aggregated)":
+                        target_paths = [f["hdfs_path"] for f in hdfs_files]
+                    else:
+                        target_paths = [f["hdfs_path"] for f in hdfs_files if f["filename"] == selected_file_option]
+                    mode_tag = "Hadoop HDFS"
+                    out_parquet_path = f"{DEFAULT_HDFS_URI}/netscope/output/cleaned_parquet"
                 else:
-                    target_paths = [f["path"] for f in discovered_files if f["filename"] == selected_file_option]
+                    discovered_files = discover_csv_files()
+                    if selected_file_option == "All Discovered CSV Files (Aggregated)":
+                        target_paths = [f["path"] for f in discovered_files]
+                    else:
+                        target_paths = [f["path"] for f in discovered_files if f["filename"] == selected_file_option]
+                    mode_tag = "Local POSIX"
+                    out_parquet_path = str(Path(BASE_DIR) / "outputs" / "parquet" / "cleaned_flows")
 
                 # Ingestion
                 df_raw, load_time = load_network_data(spark, target_paths, row_limit=target_row_limit)
@@ -198,7 +266,7 @@ if run_analysis:
                 port_dist = compute_port_distribution(df_clean, top_n=15)
                 traffic_stats = compute_traffic_volume_stats(df_clean)
                 feature_comp = compute_attack_feature_comparison(df_clean)
-                benchmarks = benchmark_spark_execution(df_clean, "Dashboard Analysis Pass")
+                benchmarks = benchmark_spark_execution(df_clean, f"{mode_tag} Aggregation Pass")
 
                 # Anomaly Tagging
                 df_tagged = apply_rule_based_anomaly_detection(df_clean)
@@ -213,6 +281,9 @@ if run_analysis:
                     .toPandas()
                 )
 
+                # Write Parquet to target storage (HDFS or local)
+                pq_saved = export_parquet(df_clean, output_location=out_parquet_path)
+
                 # Store in session state & disk cache
                 summary_data = {
                     "kpis": kpis,
@@ -225,14 +296,16 @@ if run_analysis:
                     "spark_benchmarks": benchmarks,
                     "investigation_sample": investigation_df,
                     "last_processed_timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-                    "source_target": selected_file_option,
+                    "storage_mode": mode_tag,
+                    "source_target": target_paths[0] if len(target_paths) == 1 else f"{len(target_paths)} files ({target_paths[0]}...)",
+                    "output_parquet": pq_saved,
                 }
                 save_aggregate_summaries(summary_data, prefix="latest")
                 generate_executive_report(summary_data)
 
                 st.session_state["summaries"] = summary_data
                 st.session_state["spark_df_clean"] = df_clean
-                st.success(f"Processing complete! Analyzed {kpis['total_flows']:,} flows in {benchmarks['execution_time_seconds']}s")
+                st.success(f"Processing complete on {mode_tag}! Analyzed {kpis['total_flows']:,} flows in {benchmarks['execution_time_seconds']}s")
             except Exception as e:
                 st.error(f"Spark Processing Error: {str(e)}")
 
@@ -242,7 +315,8 @@ if run_analysis:
 # -----------------------------------------------------------------------------
 summaries = st.session_state.get("summaries")
 last_ts = summaries.get("last_processed_timestamp", "Not Executed Yet") if summaries else "Not Executed Yet"
-source_lbl = summaries.get("source_target", "Default Sample") if summaries else selected_file_option
+source_lbl = summaries.get("source_target", "Default Sample") if summaries else "Default Sample"
+storage_lbl = summaries.get("storage_mode", "Local File Lake") if summaries else "Local File Lake"
 
 # Top Status Strip
 col_s1, col_s2, col_s3, col_s4 = st.columns(4)
@@ -252,7 +326,7 @@ with col_s1:
 with col_s2:
     st.markdown("**Analytics Engine:** ⚡ Apache Spark 4.2.0")
 with col_s3:
-    mode_text = "HDFS Connected" if hdfs_info["is_connected"] else "Local File Lake (Active)"
+    mode_text = f"HDFS Active ({hdfs_info['live_datanodes']} DN)" if hdfs_info["is_connected"] else "Local POSIX (Active)"
     st.markdown(f"**Storage System:** 💾 {mode_text}")
 with col_s4:
     st.markdown(f"**Last Analysis:** 🕒 {last_ts}")
@@ -284,9 +358,8 @@ tabs = st.tabs([
     "📚 Methodology & Viva Guide",
 ])
 
-# If no data is available yet, provide a clear welcome notice
 if not summaries:
-    st.info("👋 Welcome to NetScope! Click **'⚡ Run Spark'** in the sidebar to execute real Apache Spark analytics on the CICIDS2017 dataset, or click **'🔄 Disk Cache'** if a previous run was saved.")
+    st.info("👋 Welcome to NetScope! Click **'⚡ Run Spark'** in the sidebar to execute real Apache Spark analytics on the CICIDS2017 dataset, or click **'🔄 Disk Cache'** to load cached analytics.")
 
 # -----------------------------------------------------------------------------
 # TAB 1: EXECUTIVE OVERVIEW
@@ -296,7 +369,7 @@ with tabs[0]:
         kpis = summaries["kpis"]
         col1, col2, col3, col4 = st.columns(4)
         with col1:
-            render_metric_card("Total Valid Flows", f"{kpis['total_flows']:,}", f"Source: {source_lbl[:24]}", "#38bdf8")
+            render_metric_card("Total Valid Flows", f"{kpis['total_flows']:,}", f"Storage: {storage_lbl}", "#38bdf8")
         with col2:
             render_metric_card("Malicious Threat Flows", f"{kpis['malicious_flows']:,}", f"{kpis['malicious_percentage']}% of traffic", "#ef4444")
         with col3:
@@ -477,7 +550,6 @@ with tabs[3]:
             unsafe_allow_html=True,
         )
 
-        # Evaluation KPI Tiles
         eval_metrics = summaries["anomaly_eval"]
         col_e1, col_e2, col_e3, col_e4, col_e5 = st.columns(5)
         with col_e1:
@@ -518,7 +590,6 @@ with tabs[3]:
         st.markdown("#### 🔎 Anomaly Investigation Workbench (Flagged Records)")
         inv_df = summaries.get("investigation_sample", pd.DataFrame())
         if not inv_df.empty:
-            # Interactive Filter by Reason Code
             all_reasons = set()
             for r in inv_df["anomaly_reasons"].dropna():
                 for part in r.split(" | "):
@@ -575,7 +646,7 @@ with tabs[3]:
                     if clean_df is None:
                         spark = get_spark_session()
                         if spark:
-                            clean_df, _ = load_network_data(spark, [f["path"] for f in discovered_files], row_limit=50000)
+                            clean_df, _ = load_network_data(spark, [f["path"] for f in discover_csv_files()], row_limit=50000)
                             clean_df, _ = clean_network_dataframe(clean_df)
 
                     if clean_df is not None:
@@ -673,75 +744,77 @@ with tabs[5]:
         benchmarks = summaries.get("spark_benchmarks", {})
         col_b1, col_b2, col_b3 = st.columns(3)
         with col_b1:
-            render_metric_card("Processing Duration", f"{benchmarks.get('execution_time_seconds', 0)} s", "End-to-end Spark Execution", "#38bdf8")
+            render_metric_card("Processing Duration", f"{benchmarks.get('execution_time_seconds', 0)} s", f"Engine: {summaries.get('storage_mode', 'Local')}", "#38bdf8")
         with col_b2:
             render_metric_card("Spark Throughput", f"{benchmarks.get('throughput_flows_per_sec', 0):,} flows/s", "Distributed Processing Rate", "#00c9a7")
         with col_b3:
             render_metric_card("Spark RDD Partitions", f"{benchmarks.get('partitions_count', 1)}", "Parallel Execution Slices", "#a855f7")
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("#### 🌐 Hadoop HDFS Storage Diagnostics")
+    st.markdown("#### 🌐 Genuine Hadoop HDFS Data Lake Architecture")
     
-    col_h1, col_h2 = st.columns([1, 1.2])
+    col_h1, col_h2 = st.columns([1.2, 1])
     with col_h1:
         st.markdown(
             f"""
             <div class="netscope-card" style="font-size: 13px;">
-                <div style="font-weight: 700; color: #ffffff; margin-bottom: 10px;">Storage Mode Verification</div>
-                <div style="margin-bottom: 8px;"><b>Operational Mode:</b> <span style="color: #00f2fe;">{hdfs_info['mode']}</span></div>
-                <div style="margin-bottom: 8px;"><b>Configured URI:</b> <code>{hdfs_info['hdfs_uri']}</code></div>
-                <div style="margin-bottom: 8px;"><b>HDFS CLI Installed:</b> {'Yes' if hdfs_info['has_hdfs_binary'] else 'No'}</div>
-                <div style="margin-bottom: 8px;"><b>Hadoop Binary Found:</b> {'Yes' if hdfs_info['has_hadoop_binary'] else 'No'}</div>
-                <div><b>Diagnostic Message:</b><br><span style="color: #f59e0b;">{hdfs_info['diagnostic_message']}</span></div>
+                <div style="font-weight: 700; color: #ffffff; margin-bottom: 10px;">Hadoop HDFS Cluster Status</div>
+                <div style="margin-bottom: 8px;"><b>Operating State:</b> <span class="status-badge {'badge-online' if hdfs_info['is_connected'] else 'badge-offline'}">{'ONLINE & ACTIVE' if hdfs_info['is_connected'] else 'OFFLINE'}</span></div>
+                <div style="margin-bottom: 8px;"><b>NameNode URI:</b> <code>{hdfs_info['hdfs_uri']}</code></div>
+                <div style="margin-bottom: 8px;"><b>Live DataNodes:</b> <b>{hdfs_info['live_datanodes']} node(s)</b> active</div>
+                <div style="margin-bottom: 8px;"><b>DFS Remaining:</b> <b>{hdfs_info.get('dfs_remaining_gb', 0.0):.1f} GB</b></div>
+                <div style="margin-bottom: 8px;"><b>SafeMode:</b> {'ON' if hdfs_info.get('safemode_on') else 'OFF'}</div>
+                <div style="margin-bottom: 8px;"><b>HDFS CLI Binary:</b> {'Found (/opt/homebrew/bin/hdfs)' if hdfs_info['has_hdfs_binary'] else 'Missing'}</div>
+                <div><b>Diagnostics:</b> <span style="color: {'#10b981' if hdfs_info['is_connected'] else '#f59e0b'};">{hdfs_info['diagnostic_message']}</span></div>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
     with col_h2:
-        st.markdown("#### Production Hadoop Ingestion Commands")
-        cmds = generate_hdfs_deployment_commands()
-        st.code(
-            f"""# 1. Create HDFS Directory
-{cmds['create_dir']}
-
-# 2. Upload CICIDS2017 flow files to HDFS Data Lake
-{cmds['upload_dataset']}
-
-# 3. Verify files on HDFS
-{cmds['verify_files']}
-
-# 4. Ingest into Spark via HDFS URI
-{cmds['read_spark_uri']}
-""",
-            language="bash",
+        st.markdown("#### Verified Storage Locations")
+        last_in = summaries.get("source_target", "Not executed yet") if summaries else "Not executed yet"
+        last_out = summaries.get("output_parquet", "outputs/parquet/cleaned_flows") if summaries else "outputs/parquet/cleaned_flows"
+        st.markdown(
+            f"""
+            <div class="netscope-card" style="font-size: 12px;">
+                <div style="font-weight: 700; color: #ffffff; margin-bottom: 8px;">Data Pipeline Endpoints</div>
+                <div style="margin-bottom: 6px;"><b>Input Location:</b><br><code style="font-size: 11px; word-break: break-all;">{last_in}</code></div>
+                <div style="margin-bottom: 6px;"><b>Output Location (Parquet):</b><br><code style="font-size: 11px; word-break: break-all;">{last_out}</code></div>
+                <div><b>Last Verified Result:</b><br><span style="color: #10b981;">{summaries['kpis']['total_flows']:,} flows successfully processed</span></div>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
 
-    # Interactive MapReduce Demonstration
-    st.markdown("#### 🔄 Academic MapReduce Architecture Simulation")
+    # Real Live Hadoop Streaming MapReduce Section
+    st.markdown("#### 🔄 Live Hadoop Streaming MapReduce on HDFS")
     st.markdown(
         """
         <div style="font-size: 13px; color: #94a3b8; margin-bottom: 12px;">
-            Demonstrates classic Hadoop MapReduce paradigm: <b>Map Phase</b> extracts and normalizes flow labels; <b>Shuffle & Sort</b> groups identical attack keys; <b>Reduce Phase</b> aggregates total attack counts.
+            Execute a genuine <b>Hadoop Streaming MapReduce job</b> using <code>hadoop-streaming-3.5.0.jar</code> against the dataset on HDFS (<code>/netscope/input</code>).
+            The Map phase extracts and normalizes flow labels; the Shuffle/Sort groups them on DataNodes; the Reduce phase calculates total attack occurrences and writes results back to HDFS (<code>/netscope/output/mr_attack_counts</code>).
         </div>
         """,
         unsafe_allow_html=True,
     )
-    if st.button("▶ Run MapReduce Label Aggregation Simulation"):
-        with st.spinner("Executing Map -> Shuffle & Sort -> Reduce pipeline..."):
-            mr_sample = [
-                "BENIGN", "BENIGN", "DDoS", "DDoS", "PortScan",
-                "DoS Hulk", "BENIGN", "DDoS", "DoS Hulk", "BENIGN",
-            ] * 200
-            from collections import defaultdict
-            # Map & Shuffle
-            shuffle = defaultdict(int)
-            for item in mr_sample:
-                shuffle[item] += 1
+    col_mr1, col_mr2 = st.columns([1, 2])
+    with col_mr1:
+        run_mr = st.button("🚀 Execute Hadoop MapReduce on HDFS", type="primary", use_container_width=True)
 
-            mr_results = pd.DataFrame([{"Attack Key": k, "Reduced Count": v} for k, v in sorted(shuffle.items(), key=lambda x: x[1], reverse=True)])
-            st.dataframe(mr_results, use_container_width=True, hide_index=True)
-            st.success(f"MapReduce successfully aggregated {len(mr_sample):,} simulated key-value pairs.")
+    if run_mr:
+        with st.spinner("Submitting and executing MapReduce streaming job on Hadoop cluster..."):
+            mr_job = run_hadoop_streaming_mr_job(
+                input_file="/netscope/input/Friday-WorkingHours-Afternoon-DDos.pcap_ISCX.csv",
+                output_dir="/netscope/output/mr_attack_counts"
+            )
+            if mr_job["success"]:
+                st.success("Hadoop Streaming MapReduce job completed successfully on HDFS!")
+                res_df = pd.DataFrame([{"Attack Class": k, "MapReduce Aggregated Count": v} for k, v in mr_job["results"].items()])
+                st.dataframe(res_df, use_container_width=True, hide_index=True)
+                st.caption(f"Output stored on HDFS at: {mr_job['output_dir']}/part-00000")
+            else:
+                st.error(f"Hadoop MapReduce Error: {mr_job.get('error')}")
 
 # -----------------------------------------------------------------------------
 # TAB 7: METHODOLOGY & VIVA GUIDE
@@ -793,7 +866,7 @@ with tabs[6]:
 
     with st.expander("Q4: How does Hadoop HDFS fit into this Big Data pipeline?"):
         st.write(
-            "In production Big Data deployments, network flow pcap files and CSVs are ingested into Hadoop HDFS, which replicates blocks (default 128 MB) across DataNodes for fault tolerance. Apache Spark runs computation locally on the nodes storing the data (data locality). NetScope provides real HDFS connectivity checking with automatic fallback to local filesystem storage for development."
+            "In production Big Data deployments, network flow pcap files and CSVs are ingested into Hadoop HDFS, which replicates blocks (default 128 MB) across DataNodes for fault tolerance. Apache Spark runs computation locally on the nodes storing the data (data locality). NetScope provides real HDFS connectivity checking, file management, and native HDFS read/write in Parquet format."
         )
 
     # Executive Report Download

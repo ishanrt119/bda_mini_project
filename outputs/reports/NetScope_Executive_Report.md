@@ -1,5 +1,5 @@
 # NetScope Executive Cybersecurity & Big Data Summary Report
-Generated: 2026-10-20 13:07:15
+Generated: 2026-10-20 13:18:43
 Engine: Apache Spark Distributed Core | Analysis: CICIDS2017 Benchmark
 
 ## 1. Network Flow Executive Metrics
@@ -9,8 +9,8 @@ Engine: Apache Spark Distributed Core | Analysis: CICIDS2017 Benchmark
 - **Distinct Threat Classes:** 1
 
 ## 2. Big Data Performance & Architecture
-- **Processing Time:** 0.021 seconds
-- **Calculated Throughput:** 2,405,459.8 flows/sec
+- **Processing Time:** 0.024 seconds
+- **Calculated Throughput:** 2,102,429.1 flows/sec
 - **Spark Partitions:** 1
 
 ## 3. Data Hygiene & Quality Assurance
