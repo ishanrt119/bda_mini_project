@@ -1,0 +1,40 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Caches and environments
+.pytest_cache/
+.venv/
+venv/
+ENV/
+env/
+.env
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Spark and Hadoop temp files
+metastore_db/
+derby.log
+spark-warehouse/
+.spark-staging/
+checkpoint/
+warehouse/
+*.parquet.crc
+*.csv.crc
+
+# Generated output data and caches (summaries are kept in outputs/summaries)
+outputs/parquet/
+outputs/temp/
+outputs/cache/
+
+# Large raw datasets (never commit raw 880MB dataset)
+MachineLearningCVE/
+*.pcap_ISCX.csv
+*.zip
+*.tar.gz
+
+# OS specific
+.DS_Store
+Thumbs.db

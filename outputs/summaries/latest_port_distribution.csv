@@ -1,0 +1,9 @@
+port,count,service,percentage
+80,26767,HTTP,53.53
+53,11126,DNS,22.25
+443,4935,HTTPS,9.87
+8080,120,HTTP-Proxy/Alt,0.24
+22,119,SSH,0.24
+123,119,NTP,0.24
+137,86,Ephemeral/Other (137),0.17
+389,77,Ephemeral/Other (389),0.15

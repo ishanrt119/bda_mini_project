@@ -1,0 +1,942 @@
+{
+  "kpis": {
+    "total_flows": 50000,
+    "benign_flows": 26135,
+    "benign_percentage": 52.27,
+    "malicious_flows": 23865,
+    "malicious_percentage": 47.73,
+    "distinct_attack_categories": 1
+  },
+  "quality_metrics": {
+    "raw_record_count": 50000,
+    "clean_record_count": 50000,
+    "dropped_record_count": 0,
+    "invalid_rate_values_count": 13,
+    "retention_percentage": 100.0,
+    "total_columns": 80
+  },
+  "attack_distribution": [
+    {
+      "Label": "BENIGN",
+      "count": 26135,
+      "percentage": 52.27,
+      "is_attack": false
+    },
+    {
+      "Label": "DDoS",
+      "count": 23865,
+      "percentage": 47.73,
+      "is_attack": true
+    }
+  ],
+  "port_distribution": [
+    {
+      "port": 80,
+      "count": 26767,
+      "service": "HTTP",
+      "percentage": 53.53
+    },
+    {
+      "port": 53,
+      "count": 11126,
+      "service": "DNS",
+      "percentage": 22.25
+    },
+    {
+      "port": 443,
+      "count": 4935,
+      "service": "HTTPS",
+      "percentage": 9.87
+    },
+    {
+      "port": 8080,
+      "count": 120,
+      "service": "HTTP-Proxy/Alt",
+      "percentage": 0.24
+    },
+    {
+      "port": 22,
+      "count": 119,
+      "service": "SSH",
+      "percentage": 0.24
+    },
+    {
+      "port": 123,
+      "count": 119,
+      "service": "NTP",
+      "percentage": 0.24
+    },
+    {
+      "port": 137,
+      "count": 86,
+      "service": "Ephemeral/Other (137)",
+      "percentage": 0.17
+    },
+    {
+      "port": 389,
+      "count": 77,
+      "service": "Ephemeral/Other (389)",
+      "percentage": 0.15
+    }
+  ],
+  "traffic_stats": {
+    "avg_duration_us": 13378741.18,
+    "max_duration_us": 119998109.0,
+    "total_fwd_packets": 272922.0,
+    "avg_fwd_packets": 5.46,
+    "total_bwd_packets": 271521.0,
+    "total_fwd_bytes": 30431742.0,
+    "total_bwd_bytes": 355545289.0,
+    "avg_flow_bytes_per_s": 984328.38
+  },
+  "feature_comparison": [
+    {
+      "Label": "BENIGN",
+      "flow_count": 26135,
+      "avg_duration_us": 12535752.9,
+      "avg_fwd_packets": 6.5,
+      "avg_fwd_bytes": 1135.7,
+      "avg_bytes_per_s": 1827142.9
+    },
+    {
+      "Label": "DDoS",
+      "flow_count": 23865,
+      "avg_duration_us": 14301913.1,
+      "avg_fwd_packets": 4.3,
+      "avg_fwd_bytes": 31.5,
+      "avg_bytes_per_s": 61346.7
+    }
+  ],
+  "anomaly_eval": {
+    "true_positives": 65,
+    "false_positives": 5064,
+    "true_negatives": 21071,
+    "false_negatives": 23800,
+    "total_evaluated": 50000,
+    "accuracy": 0.4227,
+    "precision": 0.0127,
+    "recall": 0.0027,
+    "specificity": 0.8062,
+    "f1_score": 0.0045,
+    "confusion_matrix": [
+      [
+        21071,
+        5064
+      ],
+      [
+        23800,
+        65
+      ]
+    ]
+  },
+  "spark_benchmarks": {
+    "operation": "Full Aggregation Pass",
+    "rows_processed": 50000,
+    "execution_time_seconds": 0.021,
+    "throughput_flows_per_sec": 2405459.8,
+    "partitions_count": 1
+  },
+  "investigation_sample": [
+    {
+      "Destination Port": 54865,
+      "Flow Duration": 3.0,
+      "Flow Bytes/s": 4000000.0,
+      "Flow Packets/s": 666666.6667,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s) | High Packet Velocity (>50k pkt/s)"
+    },
+    {
+      "Destination Port": 46236,
+      "Flow Duration": 34.0,
+      "Flow Bytes/s": 352941.1765,
+      "Flow Packets/s": 58823.52941,
+      "Label": "BENIGN",
+      "anomaly_reasons": "High Packet Velocity (>50k pkt/s)"
+    },
+    {
+      "Destination Port": 54863,
+      "Flow Duration": 3.0,
+      "Flow Bytes/s": 4000000.0,
+      "Flow Packets/s": 666666.6667,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s) | High Packet Velocity (>50k pkt/s)"
+    },
+    {
+      "Destination Port": 54925,
+      "Flow Duration": 4.0,
+      "Flow Bytes/s": 3000000.0,
+      "Flow Packets/s": 500000.0,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s) | High Packet Velocity (>50k pkt/s)"
+    },
+    {
+      "Destination Port": 9282,
+      "Flow Duration": 4.0,
+      "Flow Bytes/s": 3000000.0,
+      "Flow Packets/s": 500000.0,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s) | High Packet Velocity (>50k pkt/s)"
+    },
+    {
+      "Destination Port": 55153,
+      "Flow Duration": 4.0,
+      "Flow Bytes/s": 9250000.0,
+      "Flow Packets/s": 500000.0,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s) | High Packet Velocity (>50k pkt/s) | Rapid SYN Flood Pattern (<50\u00b5s)"
+    },
+    {
+      "Destination Port": 55143,
+      "Flow Duration": 3.0,
+      "Flow Bytes/s": 12300000.0,
+      "Flow Packets/s": 666666.6667,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s) | High Packet Velocity (>50k pkt/s) | Rapid SYN Flood Pattern (<50\u00b5s)"
+    },
+    {
+      "Destination Port": 55144,
+      "Flow Duration": 1.0,
+      "Flow Bytes/s": 37000000.0,
+      "Flow Packets/s": 2000000.0,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s) | High Packet Velocity (>50k pkt/s) | Rapid SYN Flood Pattern (<50\u00b5s)"
+    },
+    {
+      "Destination Port": 55145,
+      "Flow Duration": 4.0,
+      "Flow Bytes/s": 9250000.0,
+      "Flow Packets/s": 500000.0,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s) | High Packet Velocity (>50k pkt/s) | Rapid SYN Flood Pattern (<50\u00b5s)"
+    },
+    {
+      "Destination Port": 55254,
+      "Flow Duration": 3.0,
+      "Flow Bytes/s": 14300000.0,
+      "Flow Packets/s": 1000000.0,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s) | High Packet Velocity (>50k pkt/s)"
+    },
+    {
+      "Destination Port": 53524,
+      "Flow Duration": 1.0,
+      "Flow Bytes/s": 0.0,
+      "Flow Packets/s": 2000000.0,
+      "Label": "BENIGN",
+      "anomaly_reasons": "High Packet Velocity (>50k pkt/s)"
+    },
+    {
+      "Destination Port": 53526,
+      "Flow Duration": 1.0,
+      "Flow Bytes/s": 0.0,
+      "Flow Packets/s": 2000000.0,
+      "Label": "BENIGN",
+      "anomaly_reasons": "High Packet Velocity (>50k pkt/s)"
+    },
+    {
+      "Destination Port": 53528,
+      "Flow Duration": 1.0,
+      "Flow Bytes/s": 0.0,
+      "Flow Packets/s": 3000000.0,
+      "Label": "BENIGN",
+      "anomaly_reasons": "High Packet Velocity (>50k pkt/s)"
+    },
+    {
+      "Destination Port": 53527,
+      "Flow Duration": 1.0,
+      "Flow Bytes/s": 0.0,
+      "Flow Packets/s": 2000000.0,
+      "Label": "BENIGN",
+      "anomaly_reasons": "High Packet Velocity (>50k pkt/s)"
+    },
+    {
+      "Destination Port": 55035,
+      "Flow Duration": 4.0,
+      "Flow Bytes/s": 62000000.0,
+      "Flow Packets/s": 500000.0,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s) | High Packet Velocity (>50k pkt/s) | Rapid SYN Flood Pattern (<50\u00b5s)"
+    },
+    {
+      "Destination Port": 55275,
+      "Flow Duration": 5.0,
+      "Flow Bytes/s": 50800000.0,
+      "Flow Packets/s": 600000.0,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s) | High Packet Velocity (>50k pkt/s) | Rapid SYN Flood Pattern (<50\u00b5s)"
+    },
+    {
+      "Destination Port": 55277,
+      "Flow Duration": 4.0,
+      "Flow Bytes/s": 3000000.0,
+      "Flow Packets/s": 500000.0,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s) | High Packet Velocity (>50k pkt/s)"
+    },
+    {
+      "Destination Port": 8850,
+      "Flow Duration": 4.0,
+      "Flow Bytes/s": 10800000.0,
+      "Flow Packets/s": 750000.0,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s) | High Packet Velocity (>50k pkt/s)"
+    },
+    {
+      "Destination Port": 8678,
+      "Flow Duration": 42.0,
+      "Flow Bytes/s": 1023809.524,
+      "Flow Packets/s": 71428.57143,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s) | High Packet Velocity (>50k pkt/s)"
+    },
+    {
+      "Destination Port": 55063,
+      "Flow Duration": 4.0,
+      "Flow Bytes/s": 9250000.0,
+      "Flow Packets/s": 500000.0,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s) | High Packet Velocity (>50k pkt/s) | Rapid SYN Flood Pattern (<50\u00b5s)"
+    },
+    {
+      "Destination Port": 55203,
+      "Flow Duration": 3.0,
+      "Flow Bytes/s": 12300000.0,
+      "Flow Packets/s": 666666.6667,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s) | High Packet Velocity (>50k pkt/s) | Rapid SYN Flood Pattern (<50\u00b5s)"
+    },
+    {
+      "Destination Port": 55140,
+      "Flow Duration": 3.0,
+      "Flow Bytes/s": 12300000.0,
+      "Flow Packets/s": 666666.6667,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s) | High Packet Velocity (>50k pkt/s) | Rapid SYN Flood Pattern (<50\u00b5s)"
+    },
+    {
+      "Destination Port": 55156,
+      "Flow Duration": 3.0,
+      "Flow Bytes/s": 12300000.0,
+      "Flow Packets/s": 666666.6667,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s) | High Packet Velocity (>50k pkt/s) | Rapid SYN Flood Pattern (<50\u00b5s)"
+    },
+    {
+      "Destination Port": 55096,
+      "Flow Duration": 3.0,
+      "Flow Bytes/s": 12300000.0,
+      "Flow Packets/s": 666666.6667,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s) | High Packet Velocity (>50k pkt/s) | Rapid SYN Flood Pattern (<50\u00b5s)"
+    },
+    {
+      "Destination Port": 55085,
+      "Flow Duration": 3.0,
+      "Flow Bytes/s": 12300000.0,
+      "Flow Packets/s": 666666.6667,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s) | High Packet Velocity (>50k pkt/s) | Rapid SYN Flood Pattern (<50\u00b5s)"
+    },
+    {
+      "Destination Port": 8817,
+      "Flow Duration": 3.0,
+      "Flow Bytes/s": 4000000.0,
+      "Flow Packets/s": 666666.6667,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s) | High Packet Velocity (>50k pkt/s)"
+    },
+    {
+      "Destination Port": 8816,
+      "Flow Duration": 3.0,
+      "Flow Bytes/s": 4000000.0,
+      "Flow Packets/s": 666666.6667,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s) | High Packet Velocity (>50k pkt/s)"
+    },
+    {
+      "Destination Port": 8886,
+      "Flow Duration": 1.0,
+      "Flow Bytes/s": 12000000.0,
+      "Flow Packets/s": 2000000.0,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s) | High Packet Velocity (>50k pkt/s)"
+    },
+    {
+      "Destination Port": 9331,
+      "Flow Duration": 3.0,
+      "Flow Bytes/s": 4000000.0,
+      "Flow Packets/s": 666666.6667,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s) | High Packet Velocity (>50k pkt/s)"
+    },
+    {
+      "Destination Port": 9175,
+      "Flow Duration": 3.0,
+      "Flow Bytes/s": 4000000.0,
+      "Flow Packets/s": 666666.6667,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s) | High Packet Velocity (>50k pkt/s)"
+    },
+    {
+      "Destination Port": 8693,
+      "Flow Duration": 16.0,
+      "Flow Bytes/s": 750000.0,
+      "Flow Packets/s": 125000.0,
+      "Label": "BENIGN",
+      "anomaly_reasons": "High Packet Velocity (>50k pkt/s)"
+    },
+    {
+      "Destination Port": 8690,
+      "Flow Duration": 17.0,
+      "Flow Bytes/s": 705882.3529,
+      "Flow Packets/s": 117647.0588,
+      "Label": "BENIGN",
+      "anomaly_reasons": "High Packet Velocity (>50k pkt/s)"
+    },
+    {
+      "Destination Port": 57683,
+      "Flow Duration": 4.0,
+      "Flow Bytes/s": 3000000.0,
+      "Flow Packets/s": 500000.0,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s) | High Packet Velocity (>50k pkt/s)"
+    },
+    {
+      "Destination Port": 57662,
+      "Flow Duration": 4.0,
+      "Flow Bytes/s": 3000000.0,
+      "Flow Packets/s": 500000.0,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s) | High Packet Velocity (>50k pkt/s)"
+    },
+    {
+      "Destination Port": 57680,
+      "Flow Duration": 3.0,
+      "Flow Bytes/s": 4000000.0,
+      "Flow Packets/s": 666666.6667,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s) | High Packet Velocity (>50k pkt/s)"
+    },
+    {
+      "Destination Port": 57681,
+      "Flow Duration": 3.0,
+      "Flow Bytes/s": 4000000.0,
+      "Flow Packets/s": 666666.6667,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s) | High Packet Velocity (>50k pkt/s)"
+    },
+    {
+      "Destination Port": 55270,
+      "Flow Duration": 3.0,
+      "Flow Bytes/s": 4000000.0,
+      "Flow Packets/s": 666666.6667,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s) | High Packet Velocity (>50k pkt/s)"
+    },
+    {
+      "Destination Port": 33666,
+      "Flow Duration": 37.0,
+      "Flow Bytes/s": 0.0,
+      "Flow Packets/s": 54054.05405,
+      "Label": "BENIGN",
+      "anomaly_reasons": "High Packet Velocity (>50k pkt/s)"
+    },
+    {
+      "Destination Port": 8883,
+      "Flow Duration": 3.0,
+      "Flow Bytes/s": 4000000.0,
+      "Flow Packets/s": 666666.6667,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s) | High Packet Velocity (>50k pkt/s)"
+    },
+    {
+      "Destination Port": 8884,
+      "Flow Duration": 3.0,
+      "Flow Bytes/s": 4000000.0,
+      "Flow Packets/s": 666666.6667,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s) | High Packet Velocity (>50k pkt/s)"
+    },
+    {
+      "Destination Port": 55150,
+      "Flow Duration": 1.0,
+      "Flow Bytes/s": 12000000.0,
+      "Flow Packets/s": 2000000.0,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s) | High Packet Velocity (>50k pkt/s)"
+    },
+    {
+      "Destination Port": 55039,
+      "Flow Duration": 1.0,
+      "Flow Bytes/s": 12000000.0,
+      "Flow Packets/s": 2000000.0,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s) | High Packet Velocity (>50k pkt/s)"
+    },
+    {
+      "Destination Port": 55040,
+      "Flow Duration": 32.0,
+      "Flow Bytes/s": 375000.0,
+      "Flow Packets/s": 62500.0,
+      "Label": "BENIGN",
+      "anomaly_reasons": "High Packet Velocity (>50k pkt/s)"
+    },
+    {
+      "Destination Port": 34805,
+      "Flow Duration": 8003.0,
+      "Flow Bytes/s": 2486192.678,
+      "Flow Packets/s": 2624.015994,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 34805,
+      "Flow Duration": 1.0,
+      "Flow Bytes/s": 617000000.0,
+      "Flow Packets/s": 2000000.0,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s) | High Packet Velocity (>50k pkt/s) | Rapid SYN Flood Pattern (<50\u00b5s)"
+    },
+    {
+      "Destination Port": 21,
+      "Flow Duration": 50.0,
+      "Flow Bytes/s": 0.0,
+      "Flow Packets/s": 60000.0,
+      "Label": "BENIGN",
+      "anomaly_reasons": "High Packet Velocity (>50k pkt/s)"
+    },
+    {
+      "Destination Port": 139,
+      "Flow Duration": 75.0,
+      "Flow Bytes/s": 106666.6667,
+      "Flow Packets/s": 53333.33333,
+      "Label": "BENIGN",
+      "anomaly_reasons": "High Packet Velocity (>50k pkt/s)"
+    },
+    {
+      "Destination Port": 53,
+      "Flow Duration": 302.0,
+      "Flow Bytes/s": 1754966.887,
+      "Flow Packets/s": 13245.03311,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 53,
+      "Flow Duration": 283.0,
+      "Flow Bytes/s": 1872791.519,
+      "Flow Packets/s": 14134.27562,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 53,
+      "Flow Duration": 166.0,
+      "Flow Bytes/s": 2240963.855,
+      "Flow Packets/s": 24096.38554,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 53,
+      "Flow Duration": 275.0,
+      "Flow Bytes/s": 1345454.545,
+      "Flow Packets/s": 14545.45455,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 53,
+      "Flow Duration": 266.0,
+      "Flow Bytes/s": 1526315.789,
+      "Flow Packets/s": 15037.59398,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 53,
+      "Flow Duration": 293.0,
+      "Flow Bytes/s": 1365187.713,
+      "Flow Packets/s": 13651.87713,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 443,
+      "Flow Duration": 23828.0,
+      "Flow Bytes/s": 2498321.303,
+      "Flow Packets/s": 2434.11113,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 443,
+      "Flow Duration": 23841.0,
+      "Flow Bytes/s": 2496707.353,
+      "Flow Packets/s": 2390.83931,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 443,
+      "Flow Duration": 155181.0,
+      "Flow Bytes/s": 1400686.94,
+      "Flow Packets/s": 1185.712168,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 443,
+      "Flow Duration": 23598.0,
+      "Flow Bytes/s": 2400288.16,
+      "Flow Packets/s": 2373.082465,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 443,
+      "Flow Duration": 153205.0,
+      "Flow Bytes/s": 1418478.509,
+      "Flow Packets/s": 1207.532391,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 443,
+      "Flow Duration": 24781.0,
+      "Flow Bytes/s": 2226463.823,
+      "Flow Packets/s": 2179.088818,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 443,
+      "Flow Duration": 23547.0,
+      "Flow Bytes/s": 2405232.089,
+      "Flow Packets/s": 2250.817514,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 443,
+      "Flow Duration": 23773.0,
+      "Flow Bytes/s": 2503848.904,
+      "Flow Packets/s": 2397.678038,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 443,
+      "Flow Duration": 152273.0,
+      "Flow Bytes/s": 1427239.235,
+      "Flow Packets/s": 1122.983063,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 443,
+      "Flow Duration": 23501.0,
+      "Flow Bytes/s": 2409088.975,
+      "Flow Packets/s": 2170.12042,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 443,
+      "Flow Duration": 23422.0,
+      "Flow Bytes/s": 2356246.264,
+      "Flow Packets/s": 2476.304329,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 443,
+      "Flow Duration": 24067.0,
+      "Flow Bytes/s": 2292018.116,
+      "Flow Packets/s": 2119.084223,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 443,
+      "Flow Duration": 23488.0,
+      "Flow Bytes/s": 2410507.493,
+      "Flow Packets/s": 2086.171662,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 443,
+      "Flow Duration": 23822.0,
+      "Flow Bytes/s": 2559314.919,
+      "Flow Packets/s": 2140.87818,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 443,
+      "Flow Duration": 23623.0,
+      "Flow Bytes/s": 2458959.489,
+      "Flow Packets/s": 2539.897557,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 443,
+      "Flow Duration": 24058.0,
+      "Flow Bytes/s": 2534624.657,
+      "Flow Packets/s": 2369.274254,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 443,
+      "Flow Duration": 23445.0,
+      "Flow Bytes/s": 2332736.191,
+      "Flow Packets/s": 2217.95692,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 443,
+      "Flow Duration": 23739.0,
+      "Flow Bytes/s": 2385778.676,
+      "Flow Packets/s": 2232.613,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 443,
+      "Flow Duration": 23395.0,
+      "Flow Bytes/s": 2358709.126,
+      "Flow Packets/s": 2222.697158,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 443,
+      "Flow Duration": 23638.0,
+      "Flow Bytes/s": 2620991.624,
+      "Flow Packets/s": 2411.37152,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 443,
+      "Flow Duration": 23498.0,
+      "Flow Bytes/s": 2471274.151,
+      "Flow Packets/s": 2298.067921,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 465,
+      "Flow Duration": 49.0,
+      "Flow Bytes/s": 755102.0408,
+      "Flow Packets/s": 40816.32653,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Rapid SYN Flood Pattern (<50\u00b5s)"
+    },
+    {
+      "Destination Port": 443,
+      "Flow Duration": 3.0,
+      "Flow Bytes/s": 17700000.0,
+      "Flow Packets/s": 666666.6667,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s) | High Packet Velocity (>50k pkt/s) | Rapid SYN Flood Pattern (<50\u00b5s)"
+    },
+    {
+      "Destination Port": 137,
+      "Flow Duration": 22.0,
+      "Flow Bytes/s": 29500000.0,
+      "Flow Packets/s": 590909.0909,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s) | High Packet Velocity (>50k pkt/s)"
+    },
+    {
+      "Destination Port": 53,
+      "Flow Duration": 188.0,
+      "Flow Bytes/s": 1127659.574,
+      "Flow Packets/s": 21276.59574,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 53,
+      "Flow Duration": 246.0,
+      "Flow Bytes/s": 1203252.033,
+      "Flow Packets/s": 16260.1626,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 53,
+      "Flow Duration": 275.0,
+      "Flow Bytes/s": 1076363.636,
+      "Flow Packets/s": 14545.45455,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 53,
+      "Flow Duration": 186.0,
+      "Flow Bytes/s": 1591397.849,
+      "Flow Packets/s": 21505.37634,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 53,
+      "Flow Duration": 189.0,
+      "Flow Bytes/s": 1121693.122,
+      "Flow Packets/s": 21164.02116,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 53,
+      "Flow Duration": 290.0,
+      "Flow Bytes/s": 1020689.655,
+      "Flow Packets/s": 13793.10345,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 53,
+      "Flow Duration": 266.0,
+      "Flow Bytes/s": 1112781.955,
+      "Flow Packets/s": 15037.59398,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 53,
+      "Flow Duration": 259.0,
+      "Flow Bytes/s": 1142857.143,
+      "Flow Packets/s": 15444.01544,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 53,
+      "Flow Duration": 199.0,
+      "Flow Bytes/s": 1065326.633,
+      "Flow Packets/s": 20100.50251,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 53,
+      "Flow Duration": 264.0,
+      "Flow Bytes/s": 1121212.121,
+      "Flow Packets/s": 15151.51515,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 53,
+      "Flow Duration": 198.0,
+      "Flow Bytes/s": 1070707.071,
+      "Flow Packets/s": 20202.0202,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 443,
+      "Flow Duration": 4.0,
+      "Flow Bytes/s": 3000000.0,
+      "Flow Packets/s": 500000.0,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s) | High Packet Velocity (>50k pkt/s)"
+    },
+    {
+      "Destination Port": 465,
+      "Flow Duration": 48.0,
+      "Flow Bytes/s": 770833.3333,
+      "Flow Packets/s": 41666.66667,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Rapid SYN Flood Pattern (<50\u00b5s)"
+    },
+    {
+      "Destination Port": 53,
+      "Flow Duration": 207.0,
+      "Flow Bytes/s": 1516908.213,
+      "Flow Packets/s": 19323.6715,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 53,
+      "Flow Duration": 254.0,
+      "Flow Bytes/s": 1236220.472,
+      "Flow Packets/s": 15748.0315,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 53,
+      "Flow Duration": 255.0,
+      "Flow Bytes/s": 1137254.902,
+      "Flow Packets/s": 15686.27451,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 53,
+      "Flow Duration": 253.0,
+      "Flow Bytes/s": 1146245.059,
+      "Flow Packets/s": 15810.27668,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 443,
+      "Flow Duration": 4722112.0,
+      "Flow Bytes/s": 730934.5903,
+      "Flow Packets/s": 750.9351748,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Heavy Forward Packet Flood"
+    },
+    {
+      "Destination Port": 53,
+      "Flow Duration": 170.0,
+      "Flow Bytes/s": 1341176.471,
+      "Flow Packets/s": 23529.41176,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 53,
+      "Flow Duration": 173.0,
+      "Flow Bytes/s": 1202312.139,
+      "Flow Packets/s": 23121.38728,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 53,
+      "Flow Duration": 171.0,
+      "Flow Bytes/s": 1239766.082,
+      "Flow Packets/s": 23391.81287,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 53,
+      "Flow Duration": 224.0,
+      "Flow Bytes/s": 1437500.0,
+      "Flow Packets/s": 17857.14286,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    },
+    {
+      "Destination Port": 53,
+      "Flow Duration": 176.0,
+      "Flow Bytes/s": 1272727.273,
+      "Flow Packets/s": 22727.27273,
+      "Label": "BENIGN",
+      "anomaly_reasons": "Volumetric Rate Spike (>1MB/s)"
+    }
+  ],
+  "last_processed_timestamp": "2026-10-20 13:03:29"
+}

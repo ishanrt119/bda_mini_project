@@ -1,0 +1,3 @@
+Label,flow_count,avg_duration_us,avg_fwd_packets,avg_fwd_bytes,avg_bytes_per_s
+BENIGN,26135,12535752.9,6.5,1135.7,1827142.9
+DDoS,23865,14301913.1,4.3,31.5,61346.7
